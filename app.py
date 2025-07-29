@@ -84,7 +84,7 @@ def load_graph(slug: str):
         cmap=COLOR_PALETTE,
         norm=norm,
         annot=True,
-        cbar_kws={'label': 'Количество заявителей'},
+        cbar_kws={'label': 'Загруженность в %'},
         xticklabels=DAYS_ORDER,
         yticklabels=hour_labels,
         ax=ax
