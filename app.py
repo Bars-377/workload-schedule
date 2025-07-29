@@ -3,12 +3,10 @@ matplotlib.use('Agg')  # Использовать backend без GUI
 
 from flask import Flask, Response, abort
 import requests
-import seaborn as sns
 import matplotlib.pyplot as plt
-from io import BytesIO
 from matplotlib.colors import BoundaryNorm
+from io import BytesIO
 from collections import defaultdict
-import numpy as np
 
 app = Flask(__name__)
 
@@ -51,7 +49,6 @@ def load_graph(slug: str):
     if not load_history:
         abort(404, description="Данные загруженности отсутствуют")
 
-    # Создание матрицы значений: {hour -> {day -> value}}
     data_matrix = defaultdict(dict)
     hours_set = set()
 
@@ -63,33 +60,40 @@ def load_graph(slug: str):
             data_matrix[hour][day] = value
             hours_set.add(hour)
 
-    # Упорядочим часы
     sorted_hours = sorted(hours_set)
     hour_labels = [f"{h}:00-{h+1}:00" for h in sorted_hours]
 
-    # Формирование двумерного массива значений
     values = []
     for hour in sorted_hours:
         row = [data_matrix[hour].get(day, 0) for day in DAYS_ORDER]
         values.append(row)
 
-    values_array = np.array(values)
-
-    # Построение графика
-    norm = BoundaryNorm(boundaries=COLOR_BOUNDS, ncolors=len(COLOR_PALETTE))
-    sns.set_theme()
     fig, ax = plt.subplots(figsize=(10, 6))
-    sns.heatmap(
-        values_array,
-        cmap=COLOR_PALETTE,
-        norm=norm,
-        annot=True,
-        cbar_kws={'label': 'Загруженность в %'},
-        xticklabels=DAYS_ORDER,
-        yticklabels=hour_labels,
-        ax=ax
-    )
-    ax.set_title("Информация о предполагаемой загруженности на текущую неделю", fontsize=18)
+
+    norm = BoundaryNorm(COLOR_BOUNDS, len(COLOR_PALETTE))
+    color_map = matplotlib.colors.ListedColormap(COLOR_PALETTE)
+
+    ax.imshow(values, cmap=color_map, norm=norm, aspect='auto')
+
+    # Горизонтальная ось сверху
+    ax.xaxis.set_ticks_position('top')
+    ax.xaxis.set_label_position('top')
+
+    # Подписи осей
+    ax.set_xticks(range(len(DAYS_ORDER)))
+    ax.set_xticklabels(DAYS_ORDER, fontsize=10)
+    ax.set_yticks(range(len(hour_labels)))
+    ax.set_yticklabels(hour_labels, fontsize=10)
+
+    # Добавляем сетку (границы ячеек)
+    ax.set_xticks([x - 0.5 for x in range(1, len(DAYS_ORDER))], minor=True)
+    ax.set_yticks([y - 0.5 for y in range(1, len(hour_labels))], minor=True)
+    ax.grid(which='minor', color='gray', linestyle='-', linewidth=1)
+
+    # Отключаем основные линии сетки (если включены)
+    ax.grid(which='major', visible=False)
+
+    ax.set_title("Информация о предполагаемой загруженности на текущую неделю", fontsize=16)
     ax.set_xlabel("")
     ax.set_ylabel("")
     plt.tight_layout()
