@@ -5,6 +5,7 @@ from flask import Flask, Response, abort
 import requests
 import matplotlib.pyplot as plt
 from matplotlib.colors import BoundaryNorm
+from matplotlib.patches import Patch
 from io import BytesIO
 from collections import defaultdict
 
@@ -22,8 +23,14 @@ API_HEADERS = {
     'Accept': 'application/json'
 }
 
-COLOR_BOUNDS = [0, 1, 40, 51, 100]
+COLOR_BOUNDS = [0, 1, 46, 58, 100]
 COLOR_PALETTE = ["#FFFFFF", "#FFE9D3", "#E8B7A2", "#CA4532"]
+COLOR_LABELS = [
+    "Заявители не обслуживались",
+    "Благоприятное время для посещения (от 1 до 46 заявителей)",
+    "Время средней загруженности (от 46 до 58 заявителей)",
+    "Неблагоприятное время для посещения (от 58 заявителей)"
+]
 
 @app.route("/")
 def index():
@@ -75,35 +82,39 @@ def load_graph(slug: str):
 
     ax.imshow(values, cmap=color_map, norm=norm, aspect='auto')
 
-    # Горизонтальная ось сверху
     ax.xaxis.set_ticks_position('top')
     ax.xaxis.set_label_position('top')
-
-    # Подписи осей
     ax.set_xticks(range(len(DAYS_ORDER)))
     ax.set_xticklabels(DAYS_ORDER, fontsize=10)
     ax.set_yticks(range(len(hour_labels)))
     ax.set_yticklabels(hour_labels, fontsize=10)
 
-    # Добавляем сетку (границы ячеек)
     ax.set_xticks([x - 0.5 for x in range(1, len(DAYS_ORDER))], minor=True)
     ax.set_yticks([y - 0.5 for y in range(1, len(hour_labels))], minor=True)
     ax.grid(which='minor', color='gray', linestyle='-', linewidth=1)
-
-    # Отключаем основные линии сетки (если включены)
     ax.grid(which='major', visible=False)
 
     ax.set_title("Информация о предполагаемой загруженности на текущую неделю", fontsize=16)
     ax.set_xlabel("")
     ax.set_ylabel("")
+
+    # Добавляем легенду под графиком
+    legend_patches = [
+        Patch(facecolor=color, label=label)
+        for color, label in zip(COLOR_PALETTE, COLOR_LABELS)
+    ]
+    plt.legend(handles=legend_patches, loc='lower center', bbox_to_anchor=(0.5, -0.25),
+               ncol=2, fontsize=10, frameon=False)
+
     plt.tight_layout()
 
     img = BytesIO()
-    fig.savefig(img, format='png')
+    fig.savefig(img, format='png', bbox_inches='tight')
     plt.close(fig)
     img.seek(0)
 
     return Response(img.getvalue(), mimetype='image/png')
 
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == '__main__':
+    print('Flask запущен')
+    app.run(host='0.0.0.0', port=5757, debug=True)

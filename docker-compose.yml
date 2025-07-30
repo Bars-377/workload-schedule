@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  gunicorn:
+    build: .
+    ports:
+      - "5757:5757"  # Gunicorn
+    volumes:
+      - .:/app
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    command: >
+      sh -c ". /venv/bin/activate && gunicorn --access-logfile - --error-logfile - -w 1 -k eventlet -b 0.0.0.0:5757 --timeout 120 app:app"
+    restart: unless-stopped
+    mem_limit: 1g  # Ограничение памяти
